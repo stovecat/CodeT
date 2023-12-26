@@ -24,6 +24,7 @@ def run_RG1_and_oracle_method(benchmark, repos, window_sizes, slice_sizes):
     # build vector for vanilla retrieval-augmented approach and ground truth
     vectorizer = BagOfWords
     BuildVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_baseline_and_ground_windows()
+    BuildVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_repo_windows()
     # search code for vanilla retrieval-augmented approach and ground truth
     CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_baseline_and_ground()
     # build prompt for vanilla retrieval-augmented approach and ground truth
@@ -63,8 +64,10 @@ if __name__ == '__main__':
     slice_sizes = [2]  # 20 / 2 = 10
 
     # build prompt for the RG1 and oracle methods
+    print("build prompt for the RG1 and oracle methods")
     run_RG1_and_oracle_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes)
 
     # build prompt for the RepoCoder method
+    print("build prompt for the RepoCoder method")
     prediction_path = 'predictions/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
     run_RepoCoder_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes, prediction_path)

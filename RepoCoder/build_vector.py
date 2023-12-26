@@ -32,6 +32,7 @@ class BagOfWords:
                 })
                 tqdm.tqdm.update(t)
             output_file_path = FilePathBuilder.one_gram_vector_path(self.input_file)
+            print(f"{output_file_path=}")
             Tools.dump_pickle(new_lines, output_file_path)
 
 

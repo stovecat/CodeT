@@ -149,6 +149,8 @@ class BuildPromptWrapper:
         lines = []
         for worker in workers:
             lines += worker.build_2nd_stage_input_file(mode)
+        
+        FilePathBuilder.make_needed_dir(output_file_path)
         Tools.dump_jsonl(lines, output_file_path)
 
     def build_first_search_prompt(self, mode, output_path):

@@ -20,10 +20,15 @@ class CONSTANTS:
     rgrg = 'r-g-r-g' # RepoCoder, two-stage retrieval and generation
 
 class FilePathBuilder:
+    # original name: api_level_completion_2k_context_codex.test.jsonl
     api_completion_benchmark = 'datasets/random-api-completion.test.jsonl'
+    # original name: line_level_completion_2k_context_codex.test.jsonl
     random_line_completion_benchmark = 'datasets/random-line-completion.test.jsonl'
+    
     # short version for codegen
+    # original name: api_level_completion_1k_context_codegen.test.jsonl
     short_api_completion_benchmark = 'datasets/random-api-completion-short-version.test.jsonl'
+    # original name: line_level_completion_1k_context_codegen.test.jsonl
     short_random_line_completion_benchmark = 'datasets/random-line-completion-short-version.test.jsonl'
     repo_base_dir = 'repositories/line_and_api_level'
 
@@ -79,7 +84,8 @@ class FilePathBuilder:
         repo_file_name = os.path.basename(repo_vector_file)[:-len('.pkl')]
         out_path = os.path.join(retrieval_base_dir, f'{query_file_name}.{repo_file_name}.top{max_top_k}.pkl')
         FilePathBuilder.make_needed_dir(out_path)
-        return out_path
+        
+        return out_path.replace("[", "").replace("]", "")
 
 
 class CodexTokenizer:
