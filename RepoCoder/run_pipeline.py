@@ -30,11 +30,11 @@ def run_RG1_and_oracle_method(benchmark, repos, window_sizes, slice_sizes):
     # build prompt for vanilla retrieval-augmented approach and ground truth
     tokenizer = CodexTokenizer
     mode = CONSTANTS.rg
-    output_file_path = 'prompts/rg-one-gram-ws-20-ss-2.jsonl'
+    output_file_path = f'prompts/{benchmark}/rg-one-gram-ws-20-ss-2.jsonl'
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_first_search_prompt(mode, output_file_path)
 
     mode = CONSTANTS.gt
-    output_file_path = 'prompts/gt-one-gram-ws-20-ss-2.jsonl'
+    output_file_path = f'prompts/{benchmark}/gt-one-gram-ws-20-ss-2.jsonl'
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_first_search_prompt(mode, output_file_path)
 
 
@@ -49,6 +49,7 @@ def run_RepoCoder_method(benchmark, repos, window_sizes, slice_sizes, prediction
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_prediction_prompt(mode, prediction_path, output_file_path)
 
 
+# +
 if __name__ == '__main__':
     repos = [
         'huggingface_diffusers',
@@ -66,8 +67,12 @@ if __name__ == '__main__':
     # build prompt for the RG1 and oracle methods
     print("build prompt for the RG1 and oracle methods")
     run_RG1_and_oracle_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes)
+    run_RG1_and_oracle_method(CONSTANTS.line_benchmark, repos, window_sizes, slice_sizes)
 
-    # build prompt for the RepoCoder method
-    print("build prompt for the RepoCoder method")
-    prediction_path = 'predictions/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
-    run_RepoCoder_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes, prediction_path)
+#     # build prompt for the RepoCoder method
+#     print("build prompt for the RepoCoder method")
+#     prediction_path = 'predictions/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
+#     run_RepoCoder_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes, prediction_path)
+# -
+
+
