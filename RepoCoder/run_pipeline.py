@@ -45,7 +45,7 @@ def run_RepoCoder_method(benchmark, repos, window_sizes, slice_sizes, prediction
     BuildVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_prediction_windows(mode, prediction_path)
     CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_prediction(mode, prediction_path)
     tokenizer = CodexTokenizer
-    output_file_path = 'prompts/repocoder-one-gram-ws-20-ss-2.jsonl'
+    output_file_path = f'prompts/{benchmark}/repocoder-one-gram-ws-20-ss-2.jsonl'
     BuildPromptWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes, tokenizer).build_prediction_prompt(mode, prediction_path, output_file_path)
 
 
@@ -68,11 +68,12 @@ if __name__ == '__main__':
     print("build prompt for the RG1 and oracle methods")
     run_RG1_and_oracle_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes)
     run_RG1_and_oracle_method(CONSTANTS.line_benchmark, repos, window_sizes, slice_sizes)
-
+    
 #     # build prompt for the RepoCoder method
 #     print("build prompt for the RepoCoder method")
-#     prediction_path = 'predictions/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
-#     run_RepoCoder_method(CONSTANTS.api_benchmark, repos, window_sizes, slice_sizes, prediction_path)
+#     for benchmark in [CONSTANTS.api_benchmark, CONSTANTS.line_benchmark]:
+#         prediction_path = f'predictions/{benchmark}/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
+#         run_RepoCoder_method(benchmark, repos, window_sizes, slice_sizes, prediction_path)
 # -
 
 

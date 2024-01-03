@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=4, help='torch device')
     parser.add_argument('--benchmark', type=str, default="random_api", choices=["random_api", "random_line"], help='torch device')
-    parser.add_argument('--retrieved', type=str, default="rg", choices=["rg", "gt", "none"], help='torch device')
+    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none"], help='torch device')
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
@@ -31,6 +31,8 @@ if __name__ == "__main__":
     print(args)
     if args.retrieved == "gt":
         data_path = f"prompts/{args.benchmark}/gt-one-gram-ws-20-ss-2.jsonl"
+    elif args.retrieved == "rgrg":
+        data_path = f"prompts/{args.benchmark}/repocoder-one-gram-ws-20-ss-2.jsonl"        
     else:
         data_path = f"prompts/{args.benchmark}/rg-one-gram-ws-20-ss-2.jsonl"
     
