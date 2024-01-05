@@ -172,3 +172,10 @@ class Tools:
     def tokenize(code):
         tokenizer = CodexTokenizer()
         return tokenizer.tokenize(code)
+    
+    @staticmethod
+    def get_prompt(data_path):
+        return sorted(Tools.load_jsonl(data_path), 
+                      key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
+
+

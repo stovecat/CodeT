@@ -3,7 +3,7 @@ import torch
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from utils import Tools
+from utils import Tools, FilePathBuilder
 from tqdm import tqdm
 
 max_new_tokens = 100
@@ -13,19 +13,42 @@ max_retrieved_code_len = max_input_len // 2
 max_input_code_len = max_input_len - max_retrieved_code_len
 
 splitter = "# --------------------------------------------------\n"
+precision = torch.bfloat16
 
 
+# +
+def commentize(text):
+    return '\n#'.join(text.split('\n'))
+
+def get_oracle_retrieved(data):
+    _prompt = data["prompt"]
+    _metadata = data["metadata"]
+    context = commentize(_metadata['query_window']['context'])
+    ground_truth = commentize(_metadata['ground_truth'])
+    input_path = "/".join(_metadata['fpath_tuple'])
+
+    oracle_retrieved = f"\
+# Here are some relevant code fragments from other files of the repo:\n\
+# --------------------------------------------------\n\
+# the below code fragment can be found in:\n\
+# examples/text_to_image/train_text_to_image.py\n\
+# --------------------------------------------------\n\
+# {context}\n{ground_truth}\n{splitter}"
+    return oracle_retrieved 
+
+
+# -
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=4, help='torch device')
-    parser.add_argument('--benchmark', type=str, default="random_api", choices=["random_api", "random_line"], help='torch device')
-    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none"], help='torch device')
+    parser.add_argument('--benchmark', type=str, default="random_api", choices=["short_api", "short_line", "random_api", "random_line"], help='torch device')
+    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none", "oracle"], help='torch device')
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
-    parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
-    parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
+#     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
+#     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
 
     args = parser.parse_args()
     print(args)
@@ -39,10 +62,10 @@ if __name__ == "__main__":
     data = sorted(Tools.load_jsonl(data_path), 
                   key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
 
-    current_chunk_idx = args.device-args.init_device_id
-    chunk_size = len(data)//args.n_gpus
-    data = data[current_chunk_idx*chunk_size:(current_chunk_idx+1)*chunk_size]
-
+#     current_chunk_idx = args.device-args.init_device_id
+#     chunk_size = len(data)//args.n_gpus
+#     data = data[current_chunk_idx*chunk_size:(current_chunk_idx+1)*chunk_size]
+    current_chunk_idx = 0
     
     # Load models
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -50,6 +73,7 @@ if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     
+    model = model.to(precision)
     model.to(args.device)
     model.eval()
 
@@ -64,6 +88,9 @@ if __name__ == "__main__":
         for i in tqdm(range(len(data))):
             _prompt = data[i]["prompt"]
             retrieved_code, input_code = _prompt.split(splitter+"\n")
+            if args.retrieved == "oracle":
+                retrieved_code = get_oracle_retrieved(data[i])
+            retrieved_code += splitter
 
             # Truncate from rightside
             tokenizer.truncation_side='right'
@@ -81,7 +108,8 @@ if __name__ == "__main__":
                 rag_input_tensor = input_tensor.to(args.device)
             else:
                 rag_input_tensor = {k: torch.cat([retrieved_tensor[k], 
-                                                  input_tensor[k]], axis=1).to(args.device) for k in input_tensor.keys()}
+                                                  input_tensor[k]], axis=1).to(args.device) 
+                                    for k in input_tensor.keys()}
 
             completion = model.generate(**rag_input_tensor, max_new_tokens=max_new_tokens)
 
@@ -98,8 +126,10 @@ if __name__ == "__main__":
             ground_truths.append(target)
             EM_scores.append(em_score)
             ES_scores.append(es_score)
-
+    
+    save_path = f"results/{args.benchmark}/{args.retrieved}_{args.model_name.split('/')[-1]}_{current_chunk_idx}.pkl"
+    FilePathBuilder.make_needed_dir(save_path)
     Tools.dump_pickle({"predictions": predictions,
                        "ground_truths": ground_truths,
                        "EM_scores": EM_scores, 
-                       "ES_scores": ES_scores}, f"results/{args.benchmark}/{args.retrieved}_{args.model_name.split('/')[-1]}_{current_chunk_idx}.pkl")
+                       "ES_scores": ES_scores}, save_path)

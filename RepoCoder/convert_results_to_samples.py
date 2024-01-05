@@ -1,9 +1,5 @@
 from utils import Tools, FilePathBuilder
 
-def get_prompt(data_path):
-    return sorted(Tools.load_jsonl(data_path), 
-                  key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
-
 if __name__ == '__main__':
     benchmark = 'random_api'
     model_name = 'codegen-2B-mono'
@@ -11,7 +7,7 @@ if __name__ == '__main__':
     predictions = 'rg-one-gram-ws-20-ss-2'
     iteration = 0
 
-    rg_prompts = get_prompt(f"prompts/{benchmark}/{predictions}.jsonl")
+    rg_prompts = Tools.get_prompt(f"prompts/{benchmark}/{predictions}.jsonl")
     samples = None
     for chunk_idx in range(chunk_size):
         tmp_samples = Tools.load_pickle(f"results/{benchmark}/rg_{model_name}_{chunk_idx}.pkl")        
