@@ -109,6 +109,17 @@ class CodeGenTokenizer:
     def decode(self, token_ids):
         return self.tokenizer.decode(token_ids)
 
+class CodeLLMTokenizer:
+    def __init__(self, model_name):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    def tokenize(self, text):
+        return self.tokenizer.encode(text)
+
+    def decode(self, token_ids):
+        return self.tokenizer.decode(token_ids)
+
+
 class Tools:
     @staticmethod
     def read_code(fname):
@@ -177,5 +188,9 @@ class Tools:
     def get_prompt(data_path):
         return sorted(Tools.load_jsonl(data_path), 
                       key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
+    
+    @staticmethod
+    def get_model_name(full_model_name):
+        return full_model_name.split('/')[-1]
 
 

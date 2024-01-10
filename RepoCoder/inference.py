@@ -6,11 +6,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from utils import Tools, FilePathBuilder
 from tqdm import tqdm
 
-max_new_tokens = 100
-max_token_len = 2048
-max_input_len = max_token_len - max_new_tokens
-max_retrieved_code_len = max_input_len // 2
-max_input_code_len = max_input_len - max_retrieved_code_len
+
 
 splitter = "# --------------------------------------------------\n"
 precision = torch.bfloat16
@@ -39,29 +35,34 @@ def get_oracle_retrieved(data):
 
 # -
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=4, help='torch device')
     parser.add_argument('--benchmark', type=str, default="random_api", choices=["short_api", "short_line", "random_api", "random_line"], help='torch device')
-    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none", "oracle"], help='torch device')
+    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none", "oracle",
+                                                                        "extractive_summary"], help='torch device')
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
 #     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
 #     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
 
     args = parser.parse_args()
-    print(args)
-    if args.retrieved == "gt":
-        data_path = f"prompts/{args.benchmark}/gt-one-gram-ws-20-ss-2.jsonl"
-    elif args.retrieved == "rgrg":
-        data_path = f"prompts/{args.benchmark}/repocoder-one-gram-ws-20-ss-2.jsonl"        
-    else:
-        data_path = f"prompts/{args.benchmark}/rg-one-gram-ws-20-ss-2.jsonl"
+    model_name = args.model_name.split('/')[-1]
     
+    if model_name.split('-')[0] == 'codegen':
+        max_token_len = 2048
+    else:
+        max_token_len = 4096
+    max_new_tokens = 100
+    max_input_len = max_token_len - max_new_tokens
+    max_retrieved_code_len = max_input_len // 2
+    max_input_code_len = max_input_len - max_retrieved_code_len
+        
+    print(args)
+    data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}-one-gram-ws-20-ss-2.jsonl"    
     data = sorted(Tools.load_jsonl(data_path), 
                   key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
-
+    
 #     current_chunk_idx = args.device-args.init_device_id
 #     chunk_size = len(data)//args.n_gpus
 #     data = data[current_chunk_idx*chunk_size:(current_chunk_idx+1)*chunk_size]
@@ -127,9 +128,11 @@ if __name__ == "__main__":
             EM_scores.append(em_score)
             ES_scores.append(es_score)
     
-    save_path = f"results/{args.benchmark}/{args.retrieved}_{args.model_name.split('/')[-1]}_{current_chunk_idx}.pkl"
+    save_path = f"results/{args.benchmark}/{args.retrieved}_{model_name}_{current_chunk_idx}.pkl"
     FilePathBuilder.make_needed_dir(save_path)
     Tools.dump_pickle({"predictions": predictions,
                        "ground_truths": ground_truths,
                        "EM_scores": EM_scores, 
                        "ES_scores": ES_scores}, save_path)
+
+

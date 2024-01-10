@@ -17,7 +17,7 @@ def get_n_chunk(base_path, benchmark, model, option):
 def get_scores(base_path="results", 
                benchmarks=["random_api", "random_line"],
                model="codegen-2B-mono",
-               options=["none", "rg", "repocoder", "gt"]):
+               options=["none", "rg", "repocoder", "extractive_summary", "gt", "oracle"]):
     result_dict = {}
     for benchmark in benchmarks:
         result_dict[benchmark] = {}
@@ -33,16 +33,16 @@ def get_scores(base_path="results",
                     for key, val in tmp_result.items():
                         result_dict[benchmark][option][key].extend(val)    
                         
+    print(f"{model}")
     for benchmark in benchmarks:
         print(f"[{benchmark}]")
-        print(f"")
         print("Option\tEM\tES")
         for option in options:
             if result_dict[benchmark][option] is None:
                 print(f"{option}\t-\t-")
                 continue
             print(f"{option}\t{np.mean(result_dict[benchmark][option]['EM_scores'])}\t{np.mean(result_dict[benchmark][option]['ES_scores'])}")
-    
+        print()
     return result_dict
 
 
