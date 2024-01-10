@@ -1,13 +1,13 @@
 from utils import Tools, FilePathBuilder
 
 if __name__ == '__main__':
-    benchmark = 'random_api'
+    benchmark = 'short_line'
     model_name = 'codegen-2B-mono'
-    chunk_size = 4
+    chunk_size = 1
     predictions = 'rg-one-gram-ws-20-ss-2'
     iteration = 0
 
-    rg_prompts = Tools.get_prompt(f"prompts/{benchmark}/{predictions}.jsonl")
+    rg_prompts = Tools.get_prompt(f"prompts/{benchmark}/{model_name}/{predictions}.jsonl")
     samples = None
     for chunk_idx in range(chunk_size):
         tmp_samples = Tools.load_pickle(f"results/{benchmark}/rg_{model_name}_{chunk_idx}.pkl")        
@@ -28,6 +28,6 @@ if __name__ == '__main__':
                            'choices': [{'text': v} for v in samples['predictions'][i]]}
         sample_dict_list.append(sample_dict)
         
-    save_path = f'predictions/{benchmark}/{predictions}_samples.{iteration}.jsonl'
+    save_path = f'predictions/{benchmark}/{model_name}/{predictions}_samples.{iteration}.jsonl'
     FilePathBuilder.make_needed_dir(save_path)
     Tools.dump_jsonl(sample_dict_list, save_path)

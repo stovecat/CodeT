@@ -4,10 +4,10 @@
 import functools
 import os
 
-from utils import Tools, FilePathBuilder, CodexTokenizer, CodeGenTokenizer, CONSTANTS
+from utils import Tools, FilePathBuilder, CodexTokenizer, CodeGenTokenizer, CodeLLMTokenizer, CONSTANTS
 
 class PromptBuilder:
-    def __init__(self, query_lines_with_retrieval_results, task_path, log_message, tokenizer):
+    def __init__(self, query_lines_with_retrieval_results, task_path, log_message, tokenizer, full_model_name):
         self.query_lines_with_retrieval_results = query_lines_with_retrieval_results
         self.log_message = log_message
         if tokenizer == CodexTokenizer:
@@ -16,6 +16,10 @@ class PromptBuilder:
         elif tokenizer == CodeGenTokenizer:
             self.tokenizer = CodeGenTokenizer()
             self.max_retrieval_length = 1000
+        else:
+            self.tokenizer = CodeLLMTokenizer(full_model_name)
+            # TBD: make retrieval length as a parameter
+            self.max_retrieval_length = 2000            
         tasks = Tools.load_jsonl(task_path)
         self.tasks_by_task_id = {task['metadata']['task_id']: task for task in tasks}
         self.seperator = '# ' + '-' * 50
@@ -113,7 +117,7 @@ class PromptBuilder:
         return new_prompt_lines
 
 class BuildPromptWrapper:
-    def __init__(self, vectorizer, benchmark, repos, window_size, slice_size, tokenizer):
+    def __init__(self, vectorizer, benchmark, repos, window_size, slice_size, tokenizer, full_model_name):
         if vectorizer == 'one-gram':
             self.vector_path_builder = FilePathBuilder.one_gram_vector_path
         elif vectorizer == 'ada002':
@@ -132,6 +136,7 @@ class BuildPromptWrapper:
             self.task_path = FilePathBuilder.short_random_line_completion_benchmark
         self.benchmark = benchmark
         self.tokenizer = tokenizer
+        self.full_model_name = full_model_name
     
     def _run(self, mode, query_window_path_builder, output_file_path):
         workers = []
@@ -144,7 +149,8 @@ class BuildPromptWrapper:
             
             query_lines_with_retrieval_results = Tools.load_pickle(retrieval_results)
             log_message = f'repo: {repo}, window: {self.window_size}, slice: {self.slice_size}'
-            worker = PromptBuilder(query_lines_with_retrieval_results, self.task_path, log_message, self.tokenizer)
+            worker = PromptBuilder(query_lines_with_retrieval_results, self.task_path, 
+                                   log_message, self.tokenizer, self.full_model_name)
             workers.append(worker)
         lines = []
         for worker in workers:
