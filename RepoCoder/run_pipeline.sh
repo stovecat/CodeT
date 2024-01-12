@@ -16,8 +16,10 @@ if [ $build_option == "repocoder" ]; then
     prediction_fn=rg${postfix}
 elif [ $build_option == "extractive_summary" ] || \
      [ $build_option == "abstractive_summary" ] || \
-     [ $build_option == "extractive_summary_omission" ] || \
-     [ $build_option == "extractive_summary_identifier" ]; then
+     [ $build_option == "extractive_summary_identifier" ] || \
+     [ $build_option == "extractive_summary_entity" ] || \
+     [ $build_option == "extractive_summary_non_entity" ] || \
+     [ $build_option == "extractive_summary_non_entity_no_built_in_ids" ]; then
     prediction_fn=${build_option}${postfix}
 else 
     prediction_fn=none

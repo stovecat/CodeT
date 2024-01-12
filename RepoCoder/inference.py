@@ -43,8 +43,11 @@ if __name__ == "__main__":
     parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", 
                                                                         "none", "oracle",
                                                                         "extractive_summary",
-                                                                        "extractive_summary_identifier",], 
-                                                                help='torch device')
+                                                                        "extractive_summary_identifier",
+                                                                        'extractive_summary_entity',
+                                                                        'extractive_summary_non_entity',
+                                                                        'extractive_summary_non_entity_no_built_in_ids'],
+                                                                help='retrieval option')
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
 #     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
 #     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')

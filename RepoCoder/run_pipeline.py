@@ -85,8 +85,10 @@ if __name__ == '__main__':
                                                                                    "repocoder", 
                                                                                    "extractive_summary", 
                                                                                    "abstractive_summary", 
-                                                                                   "extractive_summary_omission",
-                                                                                   "extractive_summary_identifier",])
+                                                                                   "extractive_summary_identifier",
+                                                                                   'extractive_summary_entity',
+                                                                                   'extractive_summary_non_entity',
+                                                                                   'extractive_summary_non_entity_no_built_in_ids'])
     parser.add_argument('--prediction_fn', type=str, default='rg-one-gram-ws-20-ss-2_samples.0.jsonl')
 
 #     repos = [
@@ -136,7 +138,8 @@ if __name__ == '__main__':
             else:
                 print(f"[ERROR] FILE NOT EXIST: {prediction_path}")
     elif args.build_option in ["extractive_summary", "abstractive_summary", 
-                               "extractive_summary_omission", "extractive_summary_identifier"]:
+                               "extractive_summary_identifier", "extractive_summary_entity", 
+                               "extractive_summary_non_entity", "extractive_summary_non_entity_no_built_in_ids"]:
         # build prompt for the custom method
         print(f"build prompt for the {args.build_option} method")
         for benchmark in benchmarks:
