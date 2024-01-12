@@ -40,8 +40,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=4, help='torch device')
     parser.add_argument('--benchmark', type=str, default="random_api", choices=["short_api", "short_line", "random_api", "random_line"], help='torch device')
-    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", "none", "oracle",
-                                                                        "extractive_summary"], help='torch device')
+    parser.add_argument('--retrieved', type=str, default="rg", choices=["repocoder", "rg", "gt", 
+                                                                        "none", "oracle",
+                                                                        "extractive_summary",
+                                                                        "extractive_summary_identifier",], 
+                                                                help='torch device')
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
 #     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
 #     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
@@ -59,10 +62,13 @@ if __name__ == "__main__":
     max_input_code_len = max_input_len - max_retrieved_code_len
         
     print(args)
-    data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}-one-gram-ws-20-ss-2.jsonl"    
+    if args.retrieved in ['none', 'oracle']:
+        data_path = f"prompts/{args.benchmark}/{model_name}/rg-one-gram-ws-20-ss-2.jsonl"    
+    else:
+        data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}-one-gram-ws-20-ss-2.jsonl"    
     data = sorted(Tools.load_jsonl(data_path), 
                   key=lambda x: int(x["metadata"]["task_id"].split("/")[1]))
-    
+
 #     current_chunk_idx = args.device-args.init_device_id
 #     chunk_size = len(data)//args.n_gpus
 #     data = data[current_chunk_idx*chunk_size:(current_chunk_idx+1)*chunk_size]

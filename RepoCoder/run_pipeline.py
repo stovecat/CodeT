@@ -84,7 +84,9 @@ if __name__ == '__main__':
     parser.add_argument('--build_option', type=str, default="rg1_oracle", choices=["rg1_oracle", 
                                                                                    "repocoder", 
                                                                                    "extractive_summary", 
-                                                                                   "abstractive_summary"])
+                                                                                   "abstractive_summary", 
+                                                                                   "extractive_summary_omission",
+                                                                                   "extractive_summary_identifier",])
     parser.add_argument('--prediction_fn', type=str, default='rg-one-gram-ws-20-ss-2_samples.0.jsonl')
 
 #     repos = [
@@ -97,7 +99,7 @@ if __name__ == '__main__':
 #         'pytorch_rl',
 #         'opendilab_ACE',
 #     ]
-    
+
 #     window_sizes = [20]
 #     slice_sizes = [2]  # 20 / 2 = 10
 
@@ -133,7 +135,8 @@ if __name__ == '__main__':
                                      prediction_path, tokenizer, args.full_model_name)
             else:
                 print(f"[ERROR] FILE NOT EXIST: {prediction_path}")
-    elif args.build_option in ["extractive_summary", "abstractive_summary"]:
+    elif args.build_option in ["extractive_summary", "abstractive_summary", 
+                               "extractive_summary_omission", "extractive_summary_identifier"]:
         # build prompt for the custom method
         print(f"build prompt for the {args.build_option} method")
         for benchmark in benchmarks:
