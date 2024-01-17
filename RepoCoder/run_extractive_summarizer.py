@@ -6,6 +6,7 @@ from tree_sitter import Language, Parser
 from merge_score import get_n_chunk
 
 # PYTHON DEPENDENCY
+# https://www.w3schools.com/python/python_datatypes.asp
 DEFAULT_TYPES = ['str', 
                  'int', 'float', 'complex', 
                  'list', 'tuple', 'range', 
@@ -15,6 +16,7 @@ DEFAULT_TYPES = ['str',
                  'bytes', 'bytearray', 'memoryview',
                  'NoneType']
 
+# https://docs.python.org/3/library/functions.html
 BUILT_IN_FUNCTIONS = ["abs", "aiter", "all", "anext", "any", "ascii", "bin", "bool", "breakpoint", 
                       "bytearray", "bytes", "callable", "chr", "classmethod", "compile", "complex", 
                       "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", 
