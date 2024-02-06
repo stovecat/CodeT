@@ -11,6 +11,9 @@ import functools
 
 from utils import Tools, FilePathBuilder, CONSTANTS
 
+from compute_score import compute_new_ES
+
+
 class SimilarityScore:
     @staticmethod
     def cosine_similarity(embedding_vec1, embedding_vec2):
@@ -23,6 +26,13 @@ class SimilarityScore:
         intersection = len(set1.intersection(set2))
         union = len(set1.union(set2))
         return float(intersection) / union
+
+    @staticmethod
+    def compute_new_ES(text1, text2):
+        if text1.tolist() == '' or text2.tolist() == '':
+            return 0.
+        return compute_new_ES(text1.tolist(), [text2.tolist()], passk=1)
+
 
 class CodeSearchWorker:
     def __init__(self, repo_embedding_lines, query_embedding_lines, output_path, sim_scorer, max_top_k, log_message):

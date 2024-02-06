@@ -44,6 +44,11 @@ class FilePathBuilder:
         FilePathBuilder.make_needed_dir(out_path)
         return out_path
 
+    @staticmethod
+    def repo_abs_windows_path(repo, window_size, slice_size):
+        out_path = os.path.join('cache/abs_window/repos', f'{repo}_ws{window_size}_slice{slice_size}.pkl')
+        FilePathBuilder.make_needed_dir(out_path)
+        return out_path
     
     @staticmethod
     def search_first_window_path(benchmark, mode, repo, window_size):
@@ -58,7 +63,14 @@ class FilePathBuilder:
         out_path = os.path.join(f'cache/window/{benchmark}/{mode}', f'{prediction_file_name}.{repo}_ws{window_size}.pkl')
         FilePathBuilder.make_needed_dir(out_path)
         return out_path
-
+    
+    @staticmethod
+    def gen_first_abs_window_path(benchmark, mode, prediction_path, repo, window_size):
+        prediction_file_name = os.path.basename(prediction_path).replace('.0.jsonl', '')
+        out_path = os.path.join(f'cache/abs_window/{benchmark}/{mode}', f'{prediction_file_name}.{repo}_ws{window_size}.pkl')
+        FilePathBuilder.make_needed_dir(out_path)
+        return out_path
+    
     @staticmethod
     def one_gram_vector_path(window_file):
         vector_path = window_file.replace('/window/', '/vector/')
@@ -74,6 +86,13 @@ class FilePathBuilder:
         return out_path
 
     @staticmethod
+    def ast_sequence_vector_path(window_file):
+        vector_path = window_file.replace('/abs_window/', '/abs_vector/')
+        out_path = vector_path.replace('.pkl', '.ast-sequence.pkl')
+        FilePathBuilder.make_needed_dir(out_path)
+        return out_path
+    
+    @staticmethod
     def retrieval_results_path(query_vector_file, repo_vector_file, max_top_k):
         retrieval_base_dir = os.path.dirname(query_vector_file.replace('/vector/', '/retrieval/'))
         query_file_name = os.path.basename(query_vector_file)
@@ -81,6 +100,18 @@ class FilePathBuilder:
             query_file_name = query_file_name[:-len('.one-gram.pkl')]
         elif query_file_name.endswith('.ada002.pkl'):
             query_file_name = query_file_name[:-len('.ada002.pkl')]
+        repo_file_name = os.path.basename(repo_vector_file)[:-len('.pkl')]
+        out_path = os.path.join(retrieval_base_dir, f'{query_file_name}.{repo_file_name}.top{max_top_k}.pkl')
+        FilePathBuilder.make_needed_dir(out_path)
+        
+        return out_path
+        
+    @staticmethod
+    def abs_retrieval_results_path(query_vector_file, repo_vector_file, max_top_k):
+        retrieval_base_dir = os.path.dirname(query_vector_file.replace('/abs_vector/', '/abs_retrieval/'))
+        query_file_name = os.path.basename(query_vector_file)
+        if query_file_name.endswith('.ast-sequence.pkl'):
+            query_file_name = query_file_name[:-len('.ast-sequence.pkl')]
         repo_file_name = os.path.basename(repo_vector_file)[:-len('.pkl')]
         out_path = os.path.join(retrieval_base_dir, f'{query_file_name}.{repo_file_name}.top{max_top_k}.pkl')
         FilePathBuilder.make_needed_dir(out_path)
