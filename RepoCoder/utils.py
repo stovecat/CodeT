@@ -65,9 +65,9 @@ class FilePathBuilder:
         return out_path
     
     @staticmethod
-    def gen_first_abs_window_path(benchmark, mode, prediction_path, repo, window_size):
+    def gen_first_abs_window_path(benchmark, mode, prediction_path, repo, window_size, option=''):
         prediction_file_name = os.path.basename(prediction_path).replace('.0.jsonl', '')
-        out_path = os.path.join(f'cache/abs_window/{benchmark}/{mode}', f'{prediction_file_name}.{repo}_ws{window_size}.pkl')
+        out_path = os.path.join(f'cache/abs_window/{benchmark}/{mode}', f'{prediction_file_name}.{repo}_ws{window_size}{option}.pkl')
         FilePathBuilder.make_needed_dir(out_path)
         return out_path
     

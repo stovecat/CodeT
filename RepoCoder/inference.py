@@ -52,11 +52,16 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', type=str, default="Salesforce/codegen-2B-mono", help='model name')
     parser.add_argument('--alpha', type=float, default=1/3, help='unfinished code ratio')
     parser.add_argument('--beta', type=float, default=0.5, help='predicted code line ratio')
+    parser.add_argument('--option', type=str, default="", help='include_unfinished_code_for_abstract_query_generation')
 #     parser.add_argument('--n_gpus', type=int, default=4, help='num_of_gpus')
 #     parser.add_argument('--init_device_id', type=int, default=4, help='initial device id. We assume that the gpus are assigned in a series')
 
     args = parser.parse_args()
     model_name = args.model_name.split('/')[-1]
+    
+    option = args.option
+    if args.option != '':
+        option = '_'+args.option
     
     if model_name.split('-')[0] == 'codegen':
         max_token_len = 2048
@@ -71,7 +76,7 @@ if __name__ == "__main__":
     if args.retrieved in ['none', 'oracle']:
         data_path = f"prompts/{args.benchmark}/{model_name}/rg-one-gram-ws-20-ss-2.jsonl"    
     elif args.retrieved == 'ast-sequence':
-        data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}_alpha={args.alpha}_beta={args.beta}-ES-ws-20-ss-2.jsonl" 
+        data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}_alpha={args.alpha}_beta={args.beta}{option}-ES-ws-20-ss-2.jsonl" 
     else:
         data_path = f"prompts/{args.benchmark}/{model_name}/{args.retrieved}-one-gram-ws-20-ss-2.jsonl"  
     data = sorted(Tools.load_jsonl(data_path), 
@@ -144,7 +149,7 @@ if __name__ == "__main__":
     
     save_path = f"results/{args.benchmark}/{args.retrieved}_{model_name}_{current_chunk_idx}.pkl"
     if args.retrieved == 'ast-sequence':
-        save_path = f"results/{args.benchmark}/{args.retrieved}_alpha={args.alpha}_beta={args.beta}_{model_name}_{current_chunk_idx}.pkl"
+        save_path = f"results/{args.benchmark}/{args.retrieved}_alpha={args.alpha}_beta={args.beta}{option}_{model_name}_{current_chunk_idx}.pkl"
     FilePathBuilder.make_needed_dir(save_path)
     Tools.dump_pickle({"predictions": predictions,
                        "ground_truths": ground_truths,

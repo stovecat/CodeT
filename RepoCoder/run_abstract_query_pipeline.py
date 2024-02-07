@@ -178,7 +178,8 @@ class PredictionAbstractWindowMaker(PredictionWindowMaker):
             ###################################################################
             # TBD: Include unfinished abstract code lines into the context
             ###################################################################
-#             original_lines, original_ast_sequences = get_ast_sequence(original_code)          
+            if 'include_unfinished' in self.option:
+                original_lines, original_ast_sequences = get_ast_sequence(original_code, lang)          
 #             code_lines = original_code.splitlines()
             
             context_start_lineno = prediction['metadata']['context_start_lineno']
@@ -190,8 +191,11 @@ class PredictionAbstractWindowMaker(PredictionWindowMaker):
                 #################################################
                 # Use the abstract code line as the context
                 #################################################
+                context = '\n'.join(ast_sequences)
+                if 'include_unfinished' in self.option:
+                    context = '\n'.join(original_ast_sequences)+'\n'+context
                 code_windows.append({
-                    'context': '\n'.join(ast_sequences),
+                    'context': context,
                     'metadata': {
                         'fpath_tuple': fpath_tuple,
                         'line_no': line_no,  # line_no starts from 0
@@ -205,7 +209,7 @@ class PredictionAbstractWindowMaker(PredictionWindowMaker):
                     }
                 })
         print(f'build {len(code_windows)} prediction windows for {self.repo} with window size {self.window_size}')
-        output_path = self.window_path_builder(self.prediction_path, self.repo, self.window_size)
+        output_path = self.window_path_builder(self.prediction_path, self.repo, self.window_size, self.option)
         Tools.dump_pickle(code_windows, output_path)
         
         
@@ -283,12 +287,12 @@ class BuildAbstractVectorWrapper(BuildVectorWrapper):
                 )
                 builder.build()
         
-    def vectorize_abstract_prediction_windows(self, mode, prediction_path_template):
+    def vectorize_abstract_prediction_windows(self, mode, prediction_path_template, option):
         for window_size, slice_size in itertools.product(self.window_sizes, self.slice_sizes):
             prediction_path = prediction_path_template.format(window_size=window_size, slice_size=slice_size)
             for repo in self.repos:
                 window_path = FilePathBuilder.gen_first_abs_window_path(
-                    self.benchmark, mode, prediction_path, repo, window_size
+                    self.benchmark, mode, prediction_path, repo, window_size, option
                 )
                 builder = self.vector_builder(window_path)
                 builder.build()
@@ -331,7 +335,7 @@ class CodeSearchASTWrapper(CodeSearchWrapper):
             self.sim_scorer = SimilarityScore.compute_new_ES
             self.vector_path_builder = FilePathBuilder.ast_sequence_vector_path
     
-    def _run_parallel(self, query_window_path_builder, prediction_path_template=None):
+    def _run_parallel(self, query_window_path_builder, prediction_path_template=None, option=''):
         workers = []
         for window_size in self.window_sizes:
             for slice_size in self.slice_sizes:
@@ -339,7 +343,7 @@ class CodeSearchASTWrapper(CodeSearchWrapper):
                     if prediction_path_template:
                         query_window_path = query_window_path_builder(
                             prediction_path_template.format(window_size=window_size, slice_size=slice_size),
-                            repo, window_size
+                            repo, window_size, option
                         )
                     else:
                         query_window_path = query_window_path_builder(repo, window_size)
@@ -358,9 +362,9 @@ class CodeSearchASTWrapper(CodeSearchWrapper):
             for future in tqdm.tqdm(as_completed(futures), total=len(futures)):
                 future.result()
 
-    def search_ast_prediction(self, mode, prediction_path_template):
+    def search_ast_prediction(self, mode, prediction_path_template, option):
         query_line_path_temp = functools.partial(FilePathBuilder.gen_first_abs_window_path, self.benchmark, mode)
-        self._run_parallel(query_line_path_temp, prediction_path_template)
+        self._run_parallel(query_line_path_temp, prediction_path_template, option)
         
         
 class CodeSearchWrapper(CodeSearchWrapper):
@@ -440,7 +444,7 @@ def get_spearman_rank_corr(retrieval_scores, alpha=1.0, beta=0.0):
 
 
 
-def post_process_AST_Retrieval(benchmark, alpha=1/3, beta=0.5, max_top_k=20):
+def post_process_AST_Retrieval(benchmark, alpha=1/3, beta=0.5, max_top_k=20, option=''):
     ###################################################################################
     # Post-process the results of abstract-query-based retrieval using AST sequence 
     # 1. Truncate by max_top_k=20
@@ -450,7 +454,7 @@ def post_process_AST_Retrieval(benchmark, alpha=1/3, beta=0.5, max_top_k=20):
     for repo in tqdm.tqdm(repos):
         none_retrieval = load_retrieval(f"cache/retrieval/{benchmark}/r-g/{repo}_ws20.{repo}_ws20_slice2.one-gram.top0.pkl")
         repocoder_retrieval = load_retrieval(f"cache/retrieval/{benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.one-gram.top0.pkl")
-        abs_retrieval = load_retrieval(f"cache/abs_retrieval/{benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.ast-sequence.top0.pkl")
+        abs_retrieval = load_retrieval(f"cache/abs_retrieval/{benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20{option}.{repo}_ws20_slice2.ast-sequence.top0.pkl")
         
         none_retrieval = sorted(none_retrieval, key=lambda x: x['metadata']['task_id'])
         repocoder_retrieval = sorted(repocoder_retrieval, key=lambda x: x['metadata']['task_id'])
@@ -486,15 +490,9 @@ def post_process_AST_Retrieval(benchmark, alpha=1/3, beta=0.5, max_top_k=20):
             # Sort and truncate by max_top_k=20
             ########################################
             abs_to_code_retrieval[i]['top_k_context'] = sorted(abs_to_code_retrieval[i]['top_k_context'], key=lambda x: x[1])[-max_top_k:]
-            ########################################
-            # Use the original context 
-            #
-            # Question. Use the repocoder context?
-            ########################################
-            abs_to_code_retrieval[i]['context'] = none_retrieval[i]['context']
 
         Tools.dump_pickle(abs_to_code_retrieval, 
-                         f"cache/abs_retrieval/{benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.ast-sequence_alpha={alpha}_beta={beta}.top{max_top_k}.pkl")
+                         f"cache/abs_retrieval/{benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.ast-sequence_alpha={alpha}_beta={beta}{option}.top{max_top_k}.pkl")
     
 #     return abs_to_code_retrieval
 
@@ -509,10 +507,10 @@ class BuildAbstractPromptWrapper(BuildPromptWrapper):
         if vectorizer[:len('ast-sequence')] == 'ast-sequence':
             self.vector_path_builder = FilePathBuilder.ast_sequence_vector_path
 
-    def _run(self, mode, alpha, beta, output_file_path):
+    def _run(self, mode, alpha, beta, output_file_path, option):
         workers = []
         for repo in self.repos:
-            retrieval_results = f"cache/abs_retrieval/{self.benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.ast-sequence_alpha={alpha}_beta={beta}.top{self.max_top_k}.pkl"
+            retrieval_results = f"cache/abs_retrieval/{self.benchmark}/r-g-r-g/rg-one-gram-ws-20-ss-2_samples.{repo}_ws20.{repo}_ws20_slice2.ast-sequence_alpha={alpha}_beta={beta}{option}.top{self.max_top_k}.pkl"
             
             query_lines_with_retrieval_results = Tools.load_pickle(retrieval_results)
             log_message = f'repo: {repo}, window: {self.window_size}, slice: {self.slice_size}'
@@ -528,8 +526,8 @@ class BuildAbstractPromptWrapper(BuildPromptWrapper):
         FilePathBuilder.make_needed_dir(output_file_path)
         Tools.dump_jsonl(lines, output_file_path)
             
-    def build_abstract_prediction_prompt(self, mode, alpha, beta, output_path):
-        self._run(mode, alpha, beta, output_path)
+    def build_abstract_prediction_prompt(self, mode, alpha, beta, output_path, option=''):
+        self._run(mode, alpha, beta, output_path, option)
         
         
         
@@ -546,38 +544,59 @@ if __name__ == '__main__':
     window_sizes = [20]
     slice_sizes = [2]
 
-    full_model_name = 'deepseek-ai/deepseek-coder-6.7b-instruct'
-    benchmark = 'random_api'
-    model_name = full_model_name.split('/')[1]
-
-    tokenizer = AutoTokenizer
-    full_model_name = 'deepseek-ai/deepseek-coder-6.7b-instruct'
-
-
-    model_name = Tools.get_model_name(full_model_name)
     mode = CONSTANTS.rgrg
-    prediction_path = f'predictions/{benchmark}/{model_name}/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
+    vectorizer = ASTSequence
+
+    
+    full_model_names = ['deepseek-ai/deepseek-coder-6.7b-instruct', 'deepseek-ai/deepseek-coder-6.7b-base', 'Salesforce/codegen-6B-mono', 'Salesforce/codegen-2B-mono']
+
 
     #####################################################################################################
     # alpha * Unfinished_only + (1-alpha) * ( beta*RepoCoder + (1-beta)*Abstract_query_based_RACG )
     #####################################################################################################
-    alpha=0.5
-    beta=0.9
+    
+    alpha_beta_list = [(1/3, 0.5), (0.5, 0.0), (0.0, 0.5), (0.0, 0.0)]
+    
+    
+    #####################################################################################################
+    # Include Unfinished Code Lines into the abstraction process
+    #####################################################################################################
+    _option = 'include_unfinished'
+    
+    
+    option = '_' + _option
 
+    for full_model_name in full_model_names:
+        model_name = Tools.get_model_name(full_model_name)
+        
+        benchmarks = [CONSTANTS.api_benchmark, CONSTANTS.line_benchmark]
+        if model_name == 'gpt-3.5-turbo':
+            tokenizer = CodexTokenizer
+        elif model_name.split('-')[0] == 'codegen':
+            tokenizer = CodeGenTokenizer
+            # Max token length for CodeGen is 2048
+            benchmarks = [CONSTANTS.short_api_benchmark, CONSTANTS.short_line_benchmark]
+        else:
+            tokenizer = AutoTokenizer
+            
+        for benchmark in benchmarks:
+            prediction_path = f'predictions/{benchmark}/{model_name}/rg-one-gram-ws-20-ss-2_samples.0.jsonl'
 
-    make_abs_repo_window(repos, window_sizes, slice_sizes)
+    
+            make_abs_repo_window(repos, window_sizes, slice_sizes)
 
-    MakeAbstractWindowWrapper(benchmark, repos, window_sizes, slice_sizes).window_for_abstract_prediction(mode, prediction_path, option='ast-sequence')
+            MakeAbstractWindowWrapper(benchmark, repos, window_sizes, slice_sizes).window_for_abstract_prediction(mode, prediction_path, option=option)
 
-    vectorizer = ASTSequence
-    BuildAbstractVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_abstract_repo_windows()
-    BuildAbstractVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_abstract_prediction_windows(mode, prediction_path)
+            BuildAbstractVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_abstract_repo_windows()
+            BuildAbstractVectorWrapper(benchmark, vectorizer, repos, window_sizes, slice_sizes).vectorize_abstract_prediction_windows(mode, prediction_path, option)
 
-    CodeSearchASTWrapper('ast-sequence', benchmark, repos, window_sizes, slice_sizes).search_ast_prediction(mode, prediction_path)
-    CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_prediction(mode, prediction_path)
-    CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_baseline_and_ground()
+            CodeSearchASTWrapper('ast-sequence', benchmark, repos, window_sizes, slice_sizes).search_ast_prediction(mode, prediction_path, option)
+            CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_prediction(mode, prediction_path)
+            CodeSearchWrapper('one-gram', benchmark, repos, window_sizes, slice_sizes).search_baseline_and_ground()
 
-    post_process_AST_Retrieval(benchmark, alpha=alpha, beta=beta)
+    
+            for alpha, beta in alpha_beta_list:
+                post_process_AST_Retrieval(benchmark, alpha=alpha, beta=beta, option=option)
 
-    output_file_path = f'prompts/{benchmark}/{model_name}/ast-sequence_alpha={alpha}_beta={beta}-ES-ws-20-ss-2.jsonl'
-    BuildAbstractPromptWrapper(f'ast-sequence_alpha={alpha}_beta={beta}', benchmark, repos, window_sizes, slice_sizes, tokenizer, full_model_name).build_abstract_prediction_prompt(mode, alpha, beta, output_file_path)
+                output_file_path = f'prompts/{benchmark}/{model_name}/ast-sequence_alpha={alpha}_beta={beta}{option}-ES-ws-20-ss-2.jsonl'
+                BuildAbstractPromptWrapper(f'ast-sequence_alpha={alpha}_beta={beta}', benchmark, repos, window_sizes, slice_sizes, tokenizer, full_model_name).build_abstract_prediction_prompt(mode, alpha, beta, output_file_path, option)
